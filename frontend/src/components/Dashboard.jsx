@@ -28,6 +28,63 @@ const Dashboard = () => {
         };
     };
 
+    const getRecommendation = (metric, value) => {
+        // return { message, status } where status is 'ok'|'low'|'high'|'unknown'
+        if (value == null) return { message: 'No reading', status: 'unknown' };
+
+        if (metric === 'temperature') {
+            if (!thresholds || !thresholds.temperature) return { message: 'No thresholds available', status: 'unknown' };
+            const { min, max } = thresholds.temperature;
+            if (value < min) return { message: 'Temperature is below healthy range — increase warmth or move plants to a warmer area.', status: 'low' };
+            if (value > max) return { message: 'Temperature is above healthy range — increase ventilation or cooling.', status: 'high' };
+            return { message: 'Temperature within healthy range.', status: 'ok' };
+        }
+
+        if (metric === 'humidity') {
+            if (!thresholds || !thresholds.humidity) return { message: 'No thresholds available', status: 'unknown' };
+            const { min, max } = thresholds.humidity;
+            if (value < min) return { message: 'Humidity is low — consider increasing misting or humidification.', status: 'low' };
+            if (value > max) return { message: 'Humidity is high — improve air circulation or reduce watering.', status: 'high' };
+            return { message: 'Humidity within healthy range.', status: 'ok' };
+        }
+
+        if (metric === 'ph') {
+            if (!thresholds || !thresholds.ph_level) return { message: 'No thresholds available', status: 'unknown' };
+            const { min, max } = thresholds.ph_level;
+            if (value < min) return { message: 'pH is acidic below healthy range — consider buffering the solution (raise pH).', status: 'low' };
+            if (value > max) return { message: 'pH is alkaline above healthy range — consider lowering pH.', status: 'high' };
+            return { message: 'pH within healthy range.', status: 'ok' };
+        }
+
+        if (metric === 'water') {
+            // water level thresholds are not part of model thresholds; apply simple heuristics
+            if (typeof value === 'number') {
+                if (value <= 20) return { message: 'Water level is low — refill reservoir.', status: 'low' };
+                if (value >= 80) return { message: 'Water level is high — reservoir is full.', status: 'ok' };
+                return { message: 'Water level is within normal range.', status: 'ok' };
+            }
+            // string values: check keywords
+            const s = String(value).toLowerCase();
+            if (s.includes('low')) return { message: 'Water level is low — refill reservoir.', status: 'low' };
+            if (s.includes('high') || s.includes('full')) return { message: 'Water level is sufficient.', status: 'ok' };
+            return { message: 'Water level status unknown.', status: 'unknown' };
+        }
+
+        return { message: 'No recommendation', status: 'unknown' };
+    };
+
+    const recClass = (status) => {
+        if (status === 'low' || status === 'high') return 'text-red-600';
+        if (status === 'ok') return 'text-green-600';
+        return 'text-gray-500';
+    };
+
+    // compute recommendations for current latest readings
+    const tempRec = getRecommendation('temperature', latest && latest.temperature != null ? Number(latest.temperature) : null);
+    const humRec = getRecommendation('humidity', latest && latest.humidity != null ? Number(latest.humidity) : null);
+    const phRec = getRecommendation('ph', latest && latest.ph_level != null ? Number(latest.ph_level) : null);
+    const waterRec = getRecommendation('water', latest && latest.water_level != null ? (isNaN(Number(latest.water_level)) ? latest.water_level : Number(latest.water_level)) : null);
+
     const formatTime = (iso) => {
         try {
             const d = new Date(iso);
@@ -132,6 +189,19 @@ const Dashboard = () => {
                         </svg>
                     </div>
                 </div>
+            </div>
+
+            {/* Recommendation summary above charts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[{k:'temperature', label:'Temperature', rec: tempRec}, {k:'humidity', label:'Humidity', rec: humRec}, {k:'water', label:'Water Level', rec: waterRec}, {k:'ph', label:'pH', rec: phRec}].map(item => (
+                    <div key={item.k} className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-3">
+                        <div className={`w-2 h-8 rounded ${item.rec.status === 'ok' ? 'bg-green-400' : item.rec.status === 'unknown' ? 'bg-gray-300' : 'bg-red-400'}`}></div>
+                        <div>
+                            <div className="text-sm font-medium text-gray-700">{item.label}</div>
+                            <div className={`text-sm mt-1 ${recClass(item.rec.status)}`}>{item.rec.message}</div>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
