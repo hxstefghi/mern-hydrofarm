@@ -10,11 +10,20 @@ import {
     CartesianGrid,
 } from "recharts";
 
-const API = "http://localhost:5000/api/readings/latest";
+const API = "http://localhost:5000/api/sensors/recent";
 
 const Dashboard = () => {
     const [latest, setLatest] = useState(null);
-    const [history, setHistory] = useState([]);
+    const HISTORY_SIZE = 7;
+    const [history, setHistory] = useState(() => {
+        try {
+            const raw = sessionStorage.getItem('hf_history');
+            if (raw) return JSON.parse(raw);
+        } catch {
+            /* ignore parse errors */
+        }
+        return [];
+    });
     const [thresholds, setThresholds] = useState(null);
     const mounted = useRef(false);
 
@@ -114,15 +123,31 @@ const Dashboard = () => {
             try {
                 const res = await axios.get(API);
                 const data = res.data || {};
+
+                // If API returns an array of recent points, use up to HISTORY_SIZE most recent entries
+                if (Array.isArray(data) && data.length > 0) {
+                    const items = data.slice(-HISTORY_SIZE).map((p) => {
+                        const now = p.timestamp || new Date().toISOString();
+                        const pt = normalizePoint({ ...p, timestamp: now });
+                        return { time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph };
+                    });
+                    setHistory(items);
+                    // set latest to the last raw item
+                    const lastRaw = data[data.length - 1];
+                    setLatest(lastRaw || null);
+                    return;
+                }
+
+                // single-point response (fallback)
                 const now = data.timestamp || new Date().toISOString();
                 const point = normalizePoint({ ...data, timestamp: now });
 
                 setLatest(data);
 
                 setHistory((h) => {
-                    // append new point, keep last 12 points
+                    // append new point, keep last HISTORY_SIZE points
                     const next = [...h, { time: formatTime(point.timestamp), temperature: point.temperature, humidity: point.humidity, ph: point.ph }];
-                    if (next.length > 12) next.splice(0, next.length - 12);
+                    if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
                     return next;
                 });
             } catch {
@@ -131,12 +156,21 @@ const Dashboard = () => {
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 5000);
+        const interval = setInterval(fetchData, 10000);
         return () => {
             mounted.current = false;
             clearInterval(interval);
         };
     }, []);
+
+    // persist current history to sessionStorage so navigating away/back retains recent points
+    useEffect(() => {
+        try {
+            sessionStorage.setItem('hf_history', JSON.stringify(history));
+        } catch {
+            /* ignore */
+        }
+    }, [history]);
 
 
     return (
