@@ -1,0 +1,7 @@
+username/email:
+1. micsalado1
+2. christianc13
+3. renzo1
+
+default password to all:
+123123

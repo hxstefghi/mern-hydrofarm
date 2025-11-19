@@ -1,0 +1,12 @@
+to add dummy value in the database and to test if the email notification is working:
+node scripts/insert_dummy_api.js
+
+
+to start or run the backend:
+cd backend
+node server.js
+
+
+to start or run the frontend
+cd frontend
+npm run dev

@@ -6,6 +6,7 @@ import {
     XAxis,
     YAxis,
     Tooltip,
+    ReferenceLine,
     ResponsiveContainer,
     CartesianGrid,
 } from "recharts";
@@ -14,7 +15,7 @@ const API = "http://localhost:5000/api/sensors/recent";
 
 const Dashboard = ({ token }) => {
     const [latest, setLatest] = useState(null);
-    const HISTORY_SIZE = 7;
+    const HISTORY_SIZE = 8;
     const [history, setHistory] = useState(() => {
         try {
             const raw = sessionStorage.getItem('hf_history');
@@ -260,6 +261,12 @@ const Dashboard = ({ token }) => {
                         <ResponsiveContainer>
                             <LineChart data={history}>
                                 <CartesianGrid strokeDasharray="3 3" />
+                                    {thresholds && thresholds.temperature && (
+                                        <>
+                                            <ReferenceLine y={Number(thresholds.temperature.min)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.temperature.min).toFixed(1)}°C`, fill: '#ef4444', fontSize: 12 }} />
+                                            <ReferenceLine y={Number(thresholds.temperature.max)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.temperature.max).toFixed(1)}°C`, fill: '#ef4444', fontSize: 12 }} />
+                                        </>
+                                    )}
                                 <XAxis dataKey="time" />
                                 <YAxis domain={[dataMin => (dataMin ? Math.floor(dataMin - 5) : 'auto'), 'auto']} />
                                 <Tooltip />
@@ -275,6 +282,12 @@ const Dashboard = ({ token }) => {
                         <ResponsiveContainer>
                             <LineChart data={history}>
                                 <CartesianGrid strokeDasharray="3 3" />
+                                    {thresholds && thresholds.humidity && (
+                                        <>
+                                            <ReferenceLine y={Number(thresholds.humidity.min)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.humidity.min).toFixed(1)}%`, fill: '#ef4444', fontSize: 12 }} />
+                                            <ReferenceLine y={Number(thresholds.humidity.max)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.humidity.max).toFixed(1)}%`, fill: '#ef4444', fontSize: 12 }} />
+                                        </>
+                                    )}
                                 <XAxis dataKey="time" />
                                 <YAxis />
                                 <Tooltip />
@@ -291,6 +304,12 @@ const Dashboard = ({ token }) => {
                     <ResponsiveContainer>
                         <LineChart data={history}>
                             <CartesianGrid strokeDasharray="3 3" />
+                                {thresholds && thresholds.ph_level && (
+                                    <>
+                                        <ReferenceLine y={Number(thresholds.ph_level.min)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.ph_level.min).toFixed(2)}`, fill: '#ef4444', fontSize: 12 }} />
+                                        <ReferenceLine y={Number(thresholds.ph_level.max)} stroke="#ef4444" strokeDasharray="3 3" label={{ position: 'right', value: `${Number(thresholds.ph_level.max).toFixed(2)}`, fill: '#ef4444', fontSize: 12 }} />
+                                    </>
+                                )}
                             <XAxis dataKey="time" />
                             <YAxis domain={[0, 14]} />
                             <Tooltip />
