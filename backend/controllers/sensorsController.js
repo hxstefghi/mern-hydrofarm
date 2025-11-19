@@ -123,9 +123,13 @@ return res.status(400).json({ error: 'Missing fields' });
 }
 
 
-const reading = new SensorReading({ temperature, humidity, water_level, ph_level });
-await reading.save();
-return res.status(201).json({ success: true, reading });
+	const reading = new SensorReading({ temperature, humidity, water_level, ph_level });
+	await reading.save();
+
+	// trigger alert check in background (don't block the request)
+	checkAndSendAlerts(reading).catch(e => console.error('Background alert check failed:', e && e.message ? e.message : e));
+
+	return res.status(201).json({ success: true, reading });
 } catch (err) {
 console.error(err);
 return res.status(500).json({ error: 'Server error' });

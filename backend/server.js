@@ -8,6 +8,8 @@ const connectDB = require('./config/db');
 const sensorsRoutes = require('./routes/sensors');
 const commandsRoutes = require('./routes/commands');
 const modelRoutes = require('./routes/model');
+const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 
 
 const app = express();
@@ -25,6 +27,8 @@ app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use('/api/sensors', sensorsRoutes);
 app.use('/api/commands', commandsRoutes);
 app.use('/api/model', modelRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 
 
 app.get('/', (req, res) => res.send('Hydrofarm API running'));

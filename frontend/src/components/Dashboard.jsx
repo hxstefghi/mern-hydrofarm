@@ -12,7 +12,7 @@ import {
 
 const API = "http://localhost:5000/api/sensors/recent";
 
-const Dashboard = () => {
+const Dashboard = ({ token }) => {
     const [latest, setLatest] = useState(null);
     const HISTORY_SIZE = 7;
     const [history, setHistory] = useState(() => {
@@ -109,32 +109,46 @@ const Dashboard = () => {
         // fetch thresholds (if model trained)
         const fetchThresholds = async () => {
             try {
-                const res = await axios.get('/api/model/thresholds');
+                const res = await axios.get('/api/model/thresholds', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
                 if (res.status === 200 && res.data && Object.keys(res.data).length) {
                     setThresholds(res.data);
                 }
             } catch {
-                // no thresholds yet
+                // no thresholds yet or not authorized
             }
         };
         fetchThresholds();
 
         const fetchData = async () => {
             try {
-                const res = await axios.get(API);
+                const res = await axios.get(API, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
                 const data = res.data || {};
 
-                // If API returns an array of recent points, use up to HISTORY_SIZE most recent entries
+                // If API returns an array of recent points, normalize, sort by timestamp,
+                // then use up to HISTORY_SIZE most recent entries and set latest to the newest.
                 if (Array.isArray(data) && data.length > 0) {
-                    const items = data.slice(-HISTORY_SIZE).map((p) => {
-                        const now = p.timestamp || new Date().toISOString();
-                        const pt = normalizePoint({ ...p, timestamp: now });
+                    const normalized = data.map(p => {
+                        const tsIso = p.timestamp || p.createdAt || new Date().toISOString();
+                        const ts = new Date(tsIso).getTime();
+                        return { raw: p, ts, tsIso };
+                    });
+
+                    // sort ascending (old -> new)
+                    normalized.sort((a, b) => a.ts - b.ts);
+
+                    // take the most recent HISTORY_SIZE entries
+                    const lastN = normalized.slice(-HISTORY_SIZE);
+
+                    const items = lastN.map(entry => {
+                        const pt = normalizePoint({ ...entry.raw, timestamp: entry.tsIso });
                         return { time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph };
                     });
+
                     setHistory(items);
-                    // set latest to the last raw item
-                    const lastRaw = data[data.length - 1];
-                    setLatest(lastRaw || null);
+
+                    // newest is the last element after sorting
+                    const newest = normalized[normalized.length - 1];
+                    setLatest(newest ? newest.raw : null);
                     return;
                 }
 
@@ -161,7 +175,7 @@ const Dashboard = () => {
             mounted.current = false;
             clearInterval(interval);
         };
-    }, []);
+    }, [token]);
 
     // persist current history to sessionStorage so navigating away/back retains recent points
     useEffect(() => {

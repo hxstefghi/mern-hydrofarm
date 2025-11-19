@@ -18,7 +18,12 @@ const TrainModel = () => {
     try {
       setStatus('Uploading...');
       // POST to the training endpoint which runs training and merges on success
-      const res = await axios.post('http://localhost:5000/api/model/train', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      const headers = { 'Content-Type': 'multipart/form-data' };
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('hf_token');
+        if (token) headers.Authorization = `Bearer ${token}`;
+      }
+      const res = await axios.post('http://localhost:5000/api/model/train', fd, { headers });
       if (res.status === 200) {
         const msg = res.data && res.data.message ? res.data.message : 'Train request finished';
         setStatus(msg + (res.data && res.data.thresholds ? ' — thresholds available' : ''));

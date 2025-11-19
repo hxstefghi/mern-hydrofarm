@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const Sidebar = ({ current = "dashboard", onNavigate = () => {} }) => {
+const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, onLogout = () => {} }) => {
   const items = [
     { id: "dashboard", label: "Dashboard", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -51,9 +51,9 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {} }) => {
           <aside className="relative w-72 h-full bg-white p-6 shadow-lg">
             <div className="flex items-center justify-between mb-6">
               <div className="text-lg font-semibold">
-              <span className="text-gray-800">Hydro</span>
-              <span className="text-green-500">Farm</span>
-            </div>
+                <span className="text-gray-800">Hydro</span>
+                <span className="text-green-500">Farm</span>
+              </div>
               <button onClick={() => setOpen(false)} className="p-1 rounded-md text-gray-600">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -84,44 +84,62 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {} }) => {
               <div className="mb-2 font-semibold text-gray-700">HydroFarm</div>
               <div className="text-xs text-gray-500">Compact hydroponic monitoring — temperature, humidity, water level and pH tracking.</div>
             </div>
+
+            {token && (
+              <div className="mt-4">
+                <button onClick={() => { onLogout(); setOpen(false); }} className="w-full px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+              </div>
+            )}
           </aside>
         </div>
       )}
 
       {/* Desktop sidebar */}
       <aside className="hidden md:block w-72 shrink-0">
-        <div className="bg-white rounded-xl shadow-sm p-6 h-[calc(100vh-48px)] sticky top-6">
-          <div className="mb-6">
-            <div className="text-lg font-semibold">
-              <span className="text-gray-800">Hydro</span>
-              <span className="text-green-500">Farm</span>
+        <div className="bg-white rounded-xl shadow-sm p-6 h-[calc(100vh-48px)] sticky top-6 flex flex-col justify-between">
+          <div>
+            <div className="mb-6">
+              <div className="text-lg font-semibold">
+                <span className="text-gray-800">Hydro</span>
+                <span className="text-green-500">Farm</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">Monitoring</div>
             </div>
-            <div className="text-xs text-gray-400 mt-1">Monitoring</div>
+
+            <nav className="flex flex-col gap-2">
+                {items.map((item) => {
+                  const active = current === item.id;
+                  // protect certain pages when not authenticated
+                  const protectedPages = ['dashboard', 'train-model'];
+                  const disabled = !token && protectedPages.includes(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => { if (!disabled) onNavigate(item.id); }}
+                      aria-current={active ? 'true' : undefined}
+                      className={`group flex items-center gap-3 w-full text-left px-3 py-2 rounded-md transition-colors focus:outline-none ${active ? 'bg-green-50 text-green-700 font-medium' : disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+                      disabled={disabled}
+                    >
+                      <span className={`shrink-0 ${active ? 'text-green-600' : disabled ? 'text-gray-300' : 'text-gray-400'} group-hover:text-gray-600`}>
+                        {item.icon}
+                      </span>
+                      <span className="flex-1 text-gray-700">{item.label}</span>
+                    </button>
+                  );
+                })}
+            </nav>
+
+            <div className="mt-6 border-t border-black-100 pt-4 text-sm text-gray-500">
+              <div className="mb-2 font-semibold text-gray-700">HydroFarm</div>
+              <div className="text-xs text-gray-500">Compact hydroponic monitoring — temperature, humidity, water level and pH tracking.</div>
+            </div>
           </div>
 
-          <nav className="flex flex-col gap-2">
-            {items.map((item) => {
-              const active = current === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onNavigate(item.id)}
-                  aria-current={active ? 'true' : undefined}
-                  className={`group flex items-center gap-3 w-full text-left px-3 py-2 rounded-md transition-colors focus:outline-none ${active ? 'bg-green-50 text-green-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
-                >
-                  <span className={`shrink-0 ${active ? 'text-green-600' : 'text-gray-400'} group-hover:text-gray-600`}>
-                    {item.icon}
-                  </span>
-                  <span className="flex-1 text-gray-700">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="mt-6 border-t border-black-100 pt-4 text-sm text-gray-500">
-            <div className="mb-2 font-semibold text-gray-700">HydroFarm</div>
-            <div className="text-xs text-gray-500">Compact hydroponic monitoring — temperature, humidity, water level and pH tracking.</div>
-          </div>
+          {token && (
+            <div className="mt-4">
+              <button onClick={onLogout} className="w-full px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+            </div>
+          )}
         </div>
       </aside>
     </>

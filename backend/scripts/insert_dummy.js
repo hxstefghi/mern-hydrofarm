@@ -6,10 +6,10 @@ const SensorReading = require('../models/SensorReading');
 (async () => {
   await connectDB(process.env.MONGO_URI || 'mongodb://localhost:27017/hydrofarm');
   const r = new SensorReading({
-    temperature: 24.5,
-    humidity: 55,
+    temperature: 25.6,
+    humidity: 67,
     water_level: 60,
-    ph_level: 6.1
+    ph_level: 6.8
   });
   await r.save();
   console.log('Inserted:', r);
