@@ -95,8 +95,8 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:block w-72 shrink-0">
-        <div className="bg-white rounded-xl shadow-sm p-6 h-[calc(100vh-48px)] sticky top-6 flex flex-col justify-between">
+      <aside className="hidden md:block w-72 shrink-0 sticky top-6 self-start">
+        <div className="bg-white rounded-xl shadow-sm p-6 max-h-[calc(100vh-48px)] flex flex-col justify-between overflow-auto">
           <div>
             <div className="mb-6">
               <div className="text-lg font-semibold">
