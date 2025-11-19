@@ -1,0 +1,15 @@
+{
+  "temperature": {
+    "min": 20.0,
+    "max": 28.0
+  },
+  "humidity": {
+    "min": 60.0,
+    "max": 75.0
+  },
+  "ph_level": {
+    "min": 6.0,
+    "max": 6.9
+  },
+  "model_accuracy": 1.0
+}
