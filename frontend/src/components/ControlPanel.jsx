@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from '../lib/api';
 
 
-const CMD_API = "http://localhost:5000/api/commands/send";
+const CMD_API = '/api/commands/send';
 
 
 const ControlPanel = () => {
@@ -11,7 +11,7 @@ const ControlPanel = () => {
 
     const sendCommand = async (cmd) => {
         try {
-            await axios.post(CMD_API, { command: cmd });
+            await api.post(CMD_API, { command: cmd });
             setMessage(`Command '${cmd}' sent to Arduino`);
         } catch (error) {
             console.error("Failed to send command:", error);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import axios from "axios";
+import api from '../lib/api';
 import {
     LineChart,
     Line,
@@ -11,7 +11,8 @@ import {
     CartesianGrid,
 } from "recharts";
 
-const API = "http://localhost:5000/api/sensors/recent";
+// Use relative API paths; `api` will prepend `VITE_API_URL` in production
+const API = '/api/sensors/recent';
 
 const Dashboard = ({ token }) => {
     const [latest, setLatest] = useState(null);
@@ -110,7 +111,7 @@ const Dashboard = ({ token }) => {
         // fetch thresholds (if model trained)
         const fetchThresholds = async () => {
             try {
-                const res = await axios.get('/api/model/thresholds', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                const res = await api.get('/api/model/thresholds', { headers: token ? { Authorization: `Bearer ${token}` } : {} });
                 if (res.status === 200 && res.data && Object.keys(res.data).length) {
                     setThresholds(res.data);
                 }
@@ -122,7 +123,7 @@ const Dashboard = ({ token }) => {
 
         const fetchData = async () => {
             try {
-                const res = await axios.get(API, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                const res = await api.get(API, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
                 const data = res.data || {};
 
                 // If API returns an array of recent points, normalize, sort by timestamp,

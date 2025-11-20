@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 
 const TrainModel = () => {
   const [file, setFile] = useState(null);
@@ -23,7 +23,7 @@ const TrainModel = () => {
         const token = localStorage.getItem('hf_token');
         if (token) headers.Authorization = `Bearer ${token}`;
       }
-      const res = await axios.post('http://localhost:5000/api/model/train', fd, { headers });
+      const res = await api.post('/api/model/train', fd, { headers });
       if (res.status === 200) {
         const msg = res.data && res.data.message ? res.data.message : 'Train request finished';
         setStatus(msg + (res.data && res.data.thresholds ? ' — thresholds available' : ''));

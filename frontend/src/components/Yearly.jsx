@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts';
 
 const Yearly = ({ token }) => {
@@ -10,7 +10,7 @@ const Yearly = ({ token }) => {
     const fetch = async () => {
       setLoading(true);
       try {
-        const res = await axios.get('/api/sensors/yearly', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/sensors/yearly', { headers: { Authorization: `Bearer ${token}` } });
         setData(res.data || []);
       } catch (err) {
         console.error(err);

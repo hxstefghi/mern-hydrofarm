@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 
-const API = 'http://localhost:5000/api/users';
+const API = '/api/users';
 
 const UserRow = ({ user, onSaved, onDeleted, token }) => {
   const [editing, setEditing] = useState(false);
@@ -15,7 +15,7 @@ const UserRow = ({ user, onSaved, onDeleted, token }) => {
     try {
       const body = { email, role };
       if (password) body.password = password;
-      const res = await axios.put(`${API}/${user._id}`, body, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.put(`${API}/${user._id}`, body, { headers: { Authorization: `Bearer ${token}` } });
       onSaved && onSaved(res.data);
       setEditing(false);
       setPassword('');
@@ -29,7 +29,7 @@ const UserRow = ({ user, onSaved, onDeleted, token }) => {
     if (!confirm('Delete this user?')) return;
     setBusy(true);
     try {
-      await axios.delete(`${API}/${user._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`${API}/${user._id}`, { headers: { Authorization: `Bearer ${token}` } });
       onDeleted && onDeleted(user._id);
     } catch (err) {
       console.error(err);
@@ -86,11 +86,11 @@ const MobileUserCard = ({ user, onSaved, onDeleted, token }) => {
     try {
       const body = { email, role };
       if (password) body.password = password;
-      const res = await axios.put(`${API}/${user._id}`, body, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.put(`${API}/${user._id}`, body, { headers: { Authorization: `Bearer ${token}` } });
       onSaved && onSaved(res.data);
       setEditing(false);
       setPassword('');
-    } catch (err) {
+      } catch (err) {
       console.error(err);
       alert(err?.response?.data?.message || 'Failed to save');
     } finally { setBusy(false); }
@@ -100,7 +100,7 @@ const MobileUserCard = ({ user, onSaved, onDeleted, token }) => {
     if (!confirm('Delete this user?')) return;
     setBusy(true);
     try {
-      await axios.delete(`${API}/${user._id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`${API}/${user._id}`, { headers: { Authorization: `Bearer ${token}` } });
       onDeleted && onDeleted(user._id);
     } catch (err) {
       console.error(err);
@@ -161,7 +161,7 @@ const UserManagement = ({ token }) => {
       if (!token) return;
       try {
         // get current user info
-        const r = await axios.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+        const r = await api.get('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
         const me = r.data && r.data.user ? r.data.user : r.data;
         if (!me || me.role !== 'admin') {
           setBlocked(true);
@@ -170,7 +170,7 @@ const UserManagement = ({ token }) => {
         }
 
         setLoading(true);
-        const res = await axios.get(API, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get(API, { headers: { Authorization: `Bearer ${token}` } });
         setUsers(res.data || []);
       } catch (err) {
         console.error(err);
@@ -200,7 +200,7 @@ const UserManagement = ({ token }) => {
     if (!newEmail || !newPassword) return addToast('Email and password required', 'warn');
     setCreating(true);
     try {
-      const res = await axios.post(API, { email: newEmail, password: newPassword, role: newRole }, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.post(API, { email: newEmail, password: newPassword, role: newRole }, { headers: { Authorization: `Bearer ${token}` } });
       setUsers(list => [res.data, ...list]);
       setNewEmail(''); setNewPassword(''); setNewRole('user'); setShowCreate(false);
       addToast('User created', 'success');

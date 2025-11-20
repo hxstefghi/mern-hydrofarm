@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
-
-const API = 'http://localhost:5000/api/auth';
+import api from '../lib/api';
 
 const Login = ({ onLogin }) => {
   const [email, setEmail] = useState('');
@@ -14,8 +12,7 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setStatus('');
     try {
-      const url = `${API}/login`;
-      const res = await axios.post(url, { email, password });
+      const res = await api.post('/api/auth/login', { email, password });
       if (res.data && res.data.token) {
         localStorage.setItem('hf_token', res.data.token);
         localStorage.setItem('hf_user', JSON.stringify(res.data.user || { email }));
