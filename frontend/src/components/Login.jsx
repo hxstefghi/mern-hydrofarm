@@ -6,8 +6,7 @@ const Login = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   // only login is allowed here; admin creates users via the admin panel
   const [status, setStatus] = useState('');
-  const [errorDetails, setErrorDetails] = useState(null);
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
+  
   const [showPass, setShowPass] = useState(false);
 
   const submit = async (e) => {
@@ -19,23 +18,13 @@ const Login = ({ onLogin }) => {
         localStorage.setItem('hf_token', res.data.token);
         localStorage.setItem('hf_user', JSON.stringify(res.data.user || { email }));
         setStatus('');
-        setErrorDetails(null);
         onLogin && onLogin(res.data.token);
       } else {
         setStatus('Unexpected response');
       }
     } catch (err) {
       console.error(err);
-      // Build a helpful error details object for debugging
-      const details = {
-        message: err?.message || 'Unknown error',
-        status: err?.response?.status || null,
-        body: err?.response?.data || null,
-        headers: err?.response?.headers || null,
-      };
-      setErrorDetails(details);
-      setShowErrorDetails(true);
-      setStatus(details.status ? `Failed (${details.status})` : 'Failed (network)');
+      setStatus(err?.response?.data?.message || 'Failed');
     }
   };
 
@@ -81,17 +70,7 @@ const Login = ({ onLogin }) => {
           {/* Registration removed; admins create users via User Management */}
 
           {status && <div className="text-sm text-red-600">{status}</div>}
-          {errorDetails && (
-            <div className="mt-2 text-xs text-gray-700 bg-gray-50 border rounded p-2">
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-sm text-red-600">Error details</div>
-                <button type="button" className="text-xs text-blue-600" onClick={() => setShowErrorDetails(s => !s)}>{showErrorDetails ? 'Hide' : 'Show'}</button>
-              </div>
-              {showErrorDetails && (
-                <pre className="mt-2 text-xs whitespace-pre-wrap max-h-40 overflow-auto">{JSON.stringify(errorDetails, null, 2)}</pre>
-              )}
-            </div>
-          )}
+          
         </form>
       </div>
     </div>
