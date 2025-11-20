@@ -11,6 +11,28 @@ const modelRoutes = require('./routes/model');
 const authRoutes = require('./routes/auth');
 const usersRoutes = require('./routes/users');
 
+// Debug: log info about required route modules to help catch malformed exports
+try {
+	const routesInfo = [
+		{ name: 'sensorsRoutes', value: sensorsRoutes },
+		{ name: 'commandsRoutes', value: commandsRoutes },
+		{ name: 'modelRoutes', value: modelRoutes },
+		{ name: 'authRoutes', value: authRoutes },
+		{ name: 'usersRoutes', value: usersRoutes },
+	];
+	routesInfo.forEach(r => {
+		try {
+			const t = typeof r.value;
+			const hasStack = r.value && r.value.stack && Array.isArray(r.value.stack);
+			console.log(`Required route module: ${r.name}, typeof=${t}, hasStack=${!!hasStack}`);
+		} catch (e) {
+			console.log(`Error inspecting route module ${r.name}:`, e && e.message ? e.message : e);
+		}
+	});
+} catch (e) {
+	console.error('Error during route modules inspection:', e && e.stack ? e.stack : e);
+}
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
