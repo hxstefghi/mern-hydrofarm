@@ -56,11 +56,24 @@ app.use((err, req, res, next) => {
 });
 
 
-app.use('/api/sensors', sensorsRoutes);
-app.use('/api/commands', commandsRoutes);
-app.use('/api/model', modelRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
+// Register routes with a safety wrapper to catch malformed paths which
+// can trigger path-to-regexp errors during startup (useful when deploying).
+function safeUse(path, handler) {
+	try {
+		app.use(path, handler);
+		console.log('Mounted route:', path);
+	} catch (err) {
+		console.error('Failed to mount route', path, err && err.stack ? err.stack : err);
+		// Re-throw so the process still fails loudly in production if needed.
+		throw err;
+	}
+}
+
+safeUse('/api/sensors', sensorsRoutes);
+safeUse('/api/commands', commandsRoutes);
+safeUse('/api/model', modelRoutes);
+safeUse('/api/auth', authRoutes);
+safeUse('/api/users', usersRoutes);
 
 
 app.get('/', (req, res) => res.send('Hydrofarm API running'));
