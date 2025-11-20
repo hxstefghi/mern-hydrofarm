@@ -20,8 +20,22 @@ connectDB(process.env.MONGO_URI || 'mongodb://localhost:27017/hydrofarm');
 
 
 app.use(morgan('dev'));
-app.use(express.json());
+// capture raw body for diagnostic/fallback when JSON is malformed from devices
+app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf && buf.toString(); } }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+
+// fallback error handler for malformed JSON bodies: allow request to continue
+// with raw text available at req.rawBody. This prevents express.json from
+// terminating the request with a 400 when devices send truncated JSON.
+app.use((err, req, res, next) => {
+	if (err && err.type === 'entity.parse.failed') {
+		// treat as non-fatal; keep raw body string for controllers to handle
+		req.body = req.rawBody || req.body;
+		return next();
+	}
+	return next(err);
+});
 
 
 app.use('/api/sensors', sensorsRoutes);

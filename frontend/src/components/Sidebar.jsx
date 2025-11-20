@@ -12,6 +12,12 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c1.657 0 3-1.567 3-3.5S13.657 1 12 1 9 2.567 9 4.5 10.343 8 12 8zM5 21a7 7 0 0114 0" />
         </svg>
       ) },
+    { id: "yearly", label: "Yearly Overview", icon: (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 13l3-4 4 6 3-8 3 6" />
+        </svg>
+      ) },
     { id: "data-purging", label: "Data Purging", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M8 6v14a2 2 0 002 2h4a2 2 0 002-2V6M10 11v6M14 11v6" />
