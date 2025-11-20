@@ -23,7 +23,25 @@ app.use(morgan('dev'));
 // capture raw body for diagnostic/fallback when JSON is malformed from devices
 app.use(express.json({ verify: (req, res, buf) => { req.rawBody = buf && buf.toString(); } }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+
+// Explicit CORS configuration so preflight requests are handled predictably
+const corsOptions = {
+	origin: process.env.CORS_ORIGIN || '*',
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Authorization'],
+	credentials: true,
+	optionsSuccessStatus: 204,
+};
+app.use((req, res, next) => {
+	if (req.method === 'OPTIONS') {
+		// Small debug log to help track preflight requests in Render logs
+		console.log('CORS preflight for', req.originalUrl, 'headers:', Object.keys(req.headers).join(', '));
+	}
+	next();
+});
+app.use(cors(corsOptions));
+// Ensure OPTIONS is handled for all routes
+app.options('*', cors(corsOptions));
 
 // fallback error handler for malformed JSON bodies: allow request to continue
 // with raw text available at req.rawBody. This prevents express.json from
