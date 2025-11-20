@@ -11,7 +11,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        // During development proxy API calls to the deployed backend (or change to your local URL)
+        target: 'https://mern-hydrofarm.onrender.com',
         changeOrigin: true,
         secure: false,
       },
