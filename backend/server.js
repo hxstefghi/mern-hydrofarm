@@ -64,7 +64,22 @@ app.use((req, res, next) => {
 app.use(cors(corsOptions));
 // Note: avoid calling app.options with a raw '*' path (some path-to-regexp
 // versions can throw when parsing '*'). The `cors` middleware above will
-// already handle preflight requests for configured routes.
+// already handle preflight requests for configured routes. However some
+// proxies (Cloudflare/Render) add extra headers; to be robust we add a small
+// OPTIONS responder for `/api/*` that echoes allowed headers and origin.
+
+app.use('/api', (req, res, next) => {
+	if (req.method === 'OPTIONS') {
+		const origin = req.headers.origin || corsOptions.origin || '*';
+		const reqHeaders = req.headers['access-control-request-headers'];
+		res.setHeader('Access-Control-Allow-Origin', origin);
+		res.setHeader('Access-Control-Allow-Methods', (corsOptions.methods || ['GET','POST','PUT','DELETE','OPTIONS']).join(','));
+		res.setHeader('Access-Control-Allow-Headers', reqHeaders || (corsOptions.allowedHeaders || ['Content-Type','Authorization']).join(','));
+		if (corsOptions.credentials) res.setHeader('Access-Control-Allow-Credentials', 'true');
+		return res.sendStatus(corsOptions.optionsSuccessStatus || 204);
+	}
+	next();
+});
 
 // fallback error handler for malformed JSON bodies: allow request to continue
 // with raw text available at req.rawBody. This prevents express.json from
