@@ -62,8 +62,9 @@ app.use((req, res, next) => {
 	next();
 });
 app.use(cors(corsOptions));
-// Ensure OPTIONS is handled for all routes
-app.options('*', cors(corsOptions));
+// Note: avoid calling app.options with a raw '*' path (some path-to-regexp
+// versions can throw when parsing '*'). The `cors` middleware above will
+// already handle preflight requests for configured routes.
 
 // fallback error handler for malformed JSON bodies: allow request to continue
 // with raw text available at req.rawBody. This prevents express.json from
