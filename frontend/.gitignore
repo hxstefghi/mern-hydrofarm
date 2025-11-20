@@ -1,3 +1,14 @@
+node_modules/
+dist/
+npm-debug.log*
+# Vite env files
+.env
+.env.*
+.env.local
+
+# Editor
+.vscode/
+.idea/
 # Logs
 logs
 *.log
