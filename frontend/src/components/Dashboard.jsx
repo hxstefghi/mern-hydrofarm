@@ -121,58 +121,45 @@ const Dashboard = ({ token }) => {
         };
         fetchThresholds();
 
-        const fetchData = async () => {
+        // Instead of fetching bucketed recent data continuously, poll the DB for the
+        // single latest reading. If a new DB latest exists, update tiles and append
+        // to the in-memory history for charts.
+        const fetchLatest = async () => {
             try {
-                const res = await api.get(API, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-                const data = res.data || {};
+                const res = await api.get('/api/sensors/latest');
+                const data = res && res.data ? res.data : null;
+                if (data) {
+                    // set latest directly from DB
+                    setLatest(data);
 
-                // If API returns an array of recent points, normalize, sort by timestamp,
-                // then use up to HISTORY_SIZE most recent entries and set latest to the newest.
-                if (Array.isArray(data) && data.length > 0) {
-                    const normalized = data.map(p => {
-                        const tsIso = p.timestamp || p.createdAt || new Date().toISOString();
-                        const ts = new Date(tsIso).getTime();
-                        return { raw: p, ts, tsIso };
-                    });
-
-                    // sort ascending (old -> new)
-                    normalized.sort((a, b) => a.ts - b.ts);
-
-                    // take the most recent HISTORY_SIZE entries
-                    const lastN = normalized.slice(-HISTORY_SIZE);
-
-                    const items = lastN.map(entry => {
-                        const pt = normalizePoint({ ...entry.raw, timestamp: entry.tsIso });
-                        return { time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph };
-                    });
-
-                    setHistory(items);
-
-                    // newest is the last element after sorting
-                    const newest = normalized[normalized.length - 1];
-                    setLatest(newest ? newest.raw : null);
-                    return;
+                    // append to history if it's newer than the last point
+                    try {
+                        const ts = new Date(data.createdAt || data.timestamp || Date.now()).toISOString();
+                        const pt = normalizePoint({ ...data, timestamp: ts });
+                        setHistory(h => {
+                            const lastTs = h.length ? new Date(h[h.length - 1].time).getTime() : 0;
+                            const newTs = new Date(pt.timestamp).getTime();
+                            // Only append if newer than last recorded point
+                            if (!h.length || newTs > lastTs) {
+                                const next = [...h, { time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph }];
+                                if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
+                                return next;
+                            }
+                            return h;
+                        });
+                    } catch {
+                        // ignore history append errors
+                    }
                 }
-
-                // single-point response (fallback)
-                const now = data.timestamp || new Date().toISOString();
-                const point = normalizePoint({ ...data, timestamp: now });
-
-                setLatest(data);
-
-                setHistory((h) => {
-                    // append new point, keep last HISTORY_SIZE points
-                    const next = [...h, { time: formatTime(point.timestamp), temperature: point.temperature, humidity: point.humidity, ph: point.ph }];
-                    if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
-                    return next;
-                });
-            } catch {
-                console.error("Error fetching data");
+            } catch (err) {
+                // network hiccup — don't throw
+                console.debug('fetchLatest error', err && err.response ? { status: err.response.status } : err && err.message ? err.message : err);
             }
         };
 
-        fetchData();
-        const interval = setInterval(fetchData, 10000);
+        // initial load + periodic poll (every 10s) for latest only
+        fetchLatest();
+        const interval = setInterval(fetchLatest, 10000);
         return () => {
             mounted.current = false;
             clearInterval(interval);

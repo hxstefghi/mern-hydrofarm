@@ -287,3 +287,15 @@ exports.getYearly = async (req, res) => {
 		res.status(500).json({ error: 'Server error' });
 	}
 };
+
+// GET /api/sensors/latest - return the single most recent reading (or null)
+exports.getLatest = async (req, res) => {
+	try {
+		const latest = await SensorReading.findOne({}).sort({ createdAt: -1 }).lean();
+		if (!latest) return res.json(null);
+		return res.json(latest);
+	} catch (err) {
+		console.error('getLatest error', err);
+		return res.status(500).json({ error: 'Server error' });
+	}
+};

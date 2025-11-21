@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { postReading, getRecent, getYearly } = require('../controllers/sensorsController');
+const { postReading, getRecent, getYearly, getLatest } = require('../controllers/sensorsController');
 const auth = require('../middleware/auth');
 
 // Allow devices to post readings without auth; protect recent fetch (dashboard) behind JWT
@@ -25,6 +25,8 @@ router.post('/echo', (req, res) => {
 });
 // Make recent readings public so the dashboard can fetch them without a token
 router.get('/recent', getRecent);
+// Single latest reading (public) used by dashboard tiles
+router.get('/latest', getLatest);
 router.get('/yearly', auth, getYearly);
 
 module.exports = router;
