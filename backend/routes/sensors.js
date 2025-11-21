@@ -23,7 +23,8 @@ router.post('/echo', (req, res) => {
 	};
 	res.json({ ok: true, sample });
 });
-router.get('/recent', auth, getRecent);
+// Make recent readings public so the dashboard can fetch them without a token
+router.get('/recent', getRecent);
 router.get('/yearly', auth, getYearly);
 
 module.exports = router;
