@@ -33,11 +33,23 @@ const App = () => {
         {token && <Sidebar current={page} onNavigate={(p) => { setPage(p); setDrawerOpen(false); }} token={token} onLogout={handleLogout} />}
 
         <main className="flex-1">
-          {token && page === 'dashboard' && (
-            <header className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-bold text-center">HydroFarm Monitoring Dashboard</h1>
-            </header>
-          )}
+          {token && (() => {
+            const titles = {
+              'dashboard': 'HydroFarm Monitoring Dashboard',
+              'train-model': 'Train Model',
+              'yearly': 'Yearly Overview',
+              'data-purging': 'Data Purging',
+              'activity-log': 'Activity Log',
+              'user-management': 'User Management'
+            };
+            const title = titles[page] || (page.charAt(0).toUpperCase() + page.slice(1));
+            const isMain = page === 'dashboard';
+            return (
+              <header className="mb-6">
+                <h1 className={`text-2xl ${isMain ? 'sm:text-3xl font-bold' : 'sm:text-2xl font-semibold'} text-center`}>{title}</h1>
+              </header>
+            );
+          })()}
 
           {!token ? (
             <div className="pt-8">
