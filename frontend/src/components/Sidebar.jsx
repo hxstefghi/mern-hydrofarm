@@ -111,7 +111,6 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
                 <span className="text-gray-800">Hydro</span>
                 <span className="text-green-500">Farm</span>
               </div>
-              <div className="text-xs text-gray-400 mt-1">Monitoring</div>
             </div>
 
             <nav className="flex flex-col gap-2">
