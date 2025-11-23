@@ -21,9 +21,9 @@ const Yearly = ({ token }) => {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Yearly Overview</h2>
       {loading ? <div>Loading...</div> : (
         <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Yearly Overview</h2>
           <div style={{ width: '100%', height: 350 }}>
             <ResponsiveContainer>
               <LineChart data={data}>
