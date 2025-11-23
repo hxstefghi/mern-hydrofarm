@@ -8,10 +8,10 @@ const API = process.env.API_URL || 'http://localhost:5000/api/sensors';
   try {
     // sample reading designed to trigger thresholds; adjust values as needed
     const payload = {
-      temperature: 19.5, // low temp example
-      humidity: 66,
-      water_level: 67,
-      ph_level: 6.7
+      temperature: 25.8, // low temp example
+      humidity: 68,
+      water_level: 57,
+      ph_level: 6.3
     };
 
     // Node 18+ has global fetch. If your Node is older, use curl or install node-fetch.

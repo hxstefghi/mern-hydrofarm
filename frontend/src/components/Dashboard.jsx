@@ -16,7 +16,7 @@ const API = '/api/sensors/recent';
 
 const Dashboard = ({ token }) => {
     const [latest, setLatest] = useState(null);
-    const HISTORY_SIZE = 8;
+    const HISTORY_SIZE = 7;
     const [history, setHistory] = useState(() => {
         try {
             const raw = sessionStorage.getItem('hf_history');
@@ -37,6 +37,23 @@ const Dashboard = ({ token }) => {
             humidity: point.humidity != null ? Number(point.humidity) : null,
             ph: point.ph_level != null ? Number(point.ph_level) : null,
         };
+    };
+
+    // Ensure history always has exactly HISTORY_SIZE entries by padding with
+    // placeholder points (null values). Oldest -> newest order. Use `iso` for
+    // precise ordering/deduplication and `time` for display only.
+    const padHistory = (points) => {
+        const pts = Array.isArray(points) ? points.slice() : [];
+        // enforce chronological order (oldest first) using iso timestamps
+        pts.sort((a, b) => {
+            const ta = a && a.iso ? new Date(a.iso).getTime() : 0;
+            const tb = b && b.iso ? new Date(b.iso).getTime() : 0;
+            return ta - tb;
+        });
+        if (pts.length >= HISTORY_SIZE) return pts.slice(pts.length - HISTORY_SIZE);
+        const missing = HISTORY_SIZE - pts.length;
+        const pad = Array.from({ length: missing }).map(() => ({ iso: '', time: '', temperature: null, humidity: null, ph: null }));
+        return [...pad, ...pts];
     };
 
     const getRecommendation = (metric, value) => {
@@ -121,9 +138,75 @@ const Dashboard = ({ token }) => {
         };
         fetchThresholds();
 
-        // Instead of fetching bucketed recent data continuously, poll the DB for the
-        // single latest reading. If a new DB latest exists, update tiles and append
-        // to the in-memory history for charts.
+        // Load the sampled recent points from the bucketed endpoint for chart history
+        // This endpoint may return an array containing either SensorReading-like
+        // objects or `null` placeholders for empty buckets. We map non-null
+        // readings into chart points and preserve chronological order.
+        const fetchRecentPoints = async (n = HISTORY_SIZE, intervalSeconds = 10) => {
+            try {
+                const res = await api.get(`/api/sensors/recent?points=${n}&intervalSeconds=${intervalSeconds}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                const arr = res && res.data ? res.data : [];
+
+                if (!Array.isArray(arr)) return;
+
+                // Map buckets (may contain nulls) to normalized points, skipping nulls
+                const pts = arr.reduce((acc, item) => {
+                    if (!item) return acc; // skip empty bucket
+                    const normalized = normalizePoint({ ...item, timestamp: item.createdAt || item.timestamp });
+                    acc.push({ iso: normalized.timestamp, time: formatTime(normalized.timestamp), temperature: normalized.temperature, humidity: normalized.humidity, ph: normalized.ph });
+                    return acc;
+                }, []);
+
+                // If we don't have enough sampled points, fall back to raw last-N readings
+                // and merge with any existing in-memory history to avoid shrinking
+                // the chart if the server returns sparse data. This keeps the chart
+                // stable when occasional polls return fewer points.
+                if (pts.length < HISTORY_SIZE) {
+                    try {
+                        const fallbackRes = await api.get(`/api/sensors/last?n=${HISTORY_SIZE}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                        const raw = fallbackRes && fallbackRes.data ? fallbackRes.data : [];
+                        if (Array.isArray(raw) && raw.length) {
+                            const fallbackPts = raw.map(a => normalizePoint({ ...a, timestamp: a.createdAt || a.timestamp }));
+                            fallbackPts.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+                            const mapped = fallbackPts.map(p => ({ iso: p.timestamp, time: formatTime(p.timestamp), temperature: p.temperature, humidity: p.humidity, ph: p.ph }));
+                            const trimmedFallback = mapped.length > HISTORY_SIZE ? mapped.slice(mapped.length - HISTORY_SIZE) : mapped;
+                            // Merge with existing history by ISO timestamp to avoid losing points
+                            setHistory(prev => {
+                                const combined = [...(prev || []), ...trimmedFallback];
+                                // dedupe by iso (keep latest occurrence)
+                                const map = new Map();
+                                for (const item of combined) map.set(item.iso || item.time, item);
+                                const merged = Array.from(map.values()).sort((a, b) => {
+                                    const ta = a && a.iso ? new Date(a.iso).getTime() : 0;
+                                    const tb = b && b.iso ? new Date(b.iso).getTime() : 0;
+                                    return ta - tb;
+                                });
+                                return padHistory(merged);
+                            });
+                            return;
+                        }
+                    } catch (e) {
+                        console.debug('fetchRecentPoints fallback error', e && e.response ? { status: e.response.status } : e && e.message ? e.message : e);
+                    }
+                }
+
+                // Merge sampled pts with existing history (do not overwrite with fewer points)
+                setHistory(prev => {
+                    const combined = [...(prev || []), ...pts];
+                    // dedupe by ISO (latest occurrence wins)
+                    const map = new Map();
+                    for (const item of combined) map.set(item.iso || item.time, item);
+                    const merged = Array.from(map.values()).sort((a, b) => {
+                        const ta = a && a.iso ? new Date(a.iso).getTime() : 0;
+                        const tb = b && b.iso ? new Date(b.iso).getTime() : 0;
+                        return ta - tb;
+                    });
+                    return padHistory(merged);
+                });
+            } catch (err) {
+                console.debug('fetchRecentPoints error', err && err.response ? { status: err.response.status } : err && err.message ? err.message : err);
+            }
+        };
         const fetchLatest = async () => {
             try {
                 const res = await api.get('/api/sensors/latest');
@@ -137,16 +220,16 @@ const Dashboard = ({ token }) => {
                         const ts = new Date(data.createdAt || data.timestamp || Date.now()).toISOString();
                         const pt = normalizePoint({ ...data, timestamp: ts });
                         setHistory(h => {
-                            const lastTs = h.length ? new Date(h[h.length - 1].time).getTime() : 0;
-                            const newTs = new Date(pt.timestamp).getTime();
-                            // Only append if newer than last recorded point
-                            if (!h.length || newTs > lastTs) {
-                                const next = [...h, { time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph }];
-                                if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
-                                return next;
-                            }
-                            return h;
-                        });
+                                const lastTs = h.length ? new Date(h[h.length - 1].iso || h[h.length - 1].time).getTime() : 0;
+                                const newTs = new Date(pt.timestamp).getTime();
+                                // Only append if newer than last recorded point
+                                if (!h.length || newTs > lastTs) {
+                                    const next = [...h, { iso: pt.timestamp, time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph }];
+                                    if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
+                                    return next;
+                                }
+                                return h;
+                            });
                     } catch {
                         // ignore history append errors
                     }
@@ -157,12 +240,75 @@ const Dashboard = ({ token }) => {
             }
         };
 
-        // initial load + periodic poll (every 10s) for latest only
+        // first load the bucketed recent points for the chart
+        fetchRecentPoints();
+
+        // start polling tiles for latest value and refresh recent points periodically
         fetchLatest();
         const interval = setInterval(fetchLatest, 10000);
+        const recentInterval = setInterval(() => fetchRecentPoints(), 15000);
+
+        // Setup Server-Sent Events (SSE) for realtime updates. If the environment
+        // doesn't support SSE or connection fails, the polling above remains as
+        // a fallback.
+        try {
+            const base = api.defaults && api.defaults.baseURL ? api.defaults.baseURL : '';
+            const streamUrl = (base || '') + '/api/sensors/stream';
+            const es = new EventSource(streamUrl);
+                    es.onmessage = (e) => {
+                try {
+                    const data = JSON.parse(e.data);
+                    if (!data) return;
+                    // update tiles
+                    setLatest(data);
+                    // append to history if newer than last
+                    try {
+                                const ts = new Date(data.createdAt || data.timestamp || Date.now()).toISOString();
+                                const pt = normalizePoint({ ...data, timestamp: ts });
+                                setHistory(h => {
+                                    const lastTs = h.length ? new Date(h[h.length - 1].iso || h[h.length - 1].time).getTime() : 0;
+                                    const newTs = new Date(pt.timestamp).getTime();
+                                    if (!h.length || newTs > lastTs) {
+                                        const next = [...h, { iso: pt.timestamp, time: formatTime(pt.timestamp), temperature: pt.temperature, humidity: pt.humidity, ph: pt.ph }];
+                                        if (next.length > HISTORY_SIZE) next.splice(0, next.length - HISTORY_SIZE);
+                                        return next;
+                                    }
+                                    return h;
+                                });
+                    } catch (err) {
+                        console.debug('SSE history append error', err && err.message ? err.message : err);
+                    }
+                } catch (err) {
+                    console.debug('SSE message parse error', err && err.message ? err.message : err);
+                }
+            };
+            es.onerror = (err) => {
+                // if SSE fails, it'll retry automatically in many environments;
+                // we keep polling as backup.
+                console.debug('SSE error', err && err.message ? err.message : err);
+                try { es.close(); } catch (closeErr) { console.debug('SSE close error', closeErr && closeErr.message ? closeErr.message : closeErr); }
+            };
+
+            // cleanup SSE on unmount
+            const cleanupSSE = () => { try { es.close(); } catch (closeErr) { console.debug('SSE close error', closeErr && closeErr.message ? closeErr.message : closeErr); } };
+            // attach cleanup to return below by adding to the unmount cleanup
+            const originalCleanup = () => {
+                mounted.current = false;
+                clearInterval(interval);
+                try { clearInterval(recentInterval); } catch (clearErr) { console.debug('clear recentInterval error', clearErr && clearErr.message ? clearErr.message : clearErr); }
+                cleanupSSE();
+            };
+            return originalCleanup;
+        } catch (e) {
+            // SSE not supported; rely on polling
+            console.debug('SSE setup failed', e && e.message ? e.message : e);
+        }
+        // If SSE setup returned early, that function already returned a cleanup.
+        // This return is reached when SSE wasn't established — ensure we still clear interval.
+        mounted.current = false;
         return () => {
-            mounted.current = false;
             clearInterval(interval);
+            try { clearInterval(recentInterval); } catch (clearErr) { console.debug('clear recentInterval error', clearErr && clearErr.message ? clearErr.message : clearErr); }
         };
     }, [token]);
 

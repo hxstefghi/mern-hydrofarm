@@ -1,4 +1,5 @@
 const SensorReading = require('../models/SensorReading');
+const emitter = require('../utils/emitter');
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
@@ -188,6 +189,13 @@ try {
 	const reading = new SensorReading({ temperature: tVal, humidity: hVal, water_level: wVal, ph_level: phVal });
 	await reading.save();
 
+	// emit a realtime event for subscribers (SSE/ws) with the saved reading
+	try {
+		emitter.emit('reading', reading);
+	} catch (e) {
+		console.debug('emitter error', e && e.message ? e.message : e);
+	}
+
 	// trigger alert check in background (don't block the request)
 	checkAndSendAlerts(reading).catch(e => console.error('Background alert check failed:', e && e.message ? e.message : e));
 
@@ -214,7 +222,19 @@ try {
 		// Fetch readings within the window (a reasonable cap)
 		const raw = await SensorReading.find({ createdAt: { $gte: windowStart } }).sort({ createdAt: 1 }).limit(1000);
 
-		if (!raw || raw.length === 0) return res.json([]);
+		if (!raw || raw.length === 0) {
+			// No readings in the recent time window — fall back to returning the
+			// last `points` raw readings (chronological). This helps clients
+			// that expect a small history (e.g., dashboard charts) instead of
+			// an empty array when device traffic is sparse.
+			try {
+				const fallback = await SensorReading.find({}).sort({ createdAt: -1 }).limit(points).lean();
+				return res.json((fallback || []).reverse());
+			} catch (e) {
+				console.error('getRecent fallback error', e && e.message ? e.message : e);
+				return res.json([]);
+			}
+		}
 
 		// Bucket readings into intervalSeconds bins and pick the latest reading in each bin
 		const buckets = new Map();
@@ -296,6 +316,19 @@ exports.getLatest = async (req, res) => {
 		return res.json(latest);
 	} catch (err) {
 		console.error('getLatest error', err);
+		return res.status(500).json({ error: 'Server error' });
+	}
+};
+
+// GET /api/sensors/last?n=8 - return the last N raw readings (most recent first)
+exports.getLastN = async (req, res) => {
+	try {
+		const n = Math.min(100, Math.max(1, parseInt(req.query.n || '8', 10)));
+		const docs = await SensorReading.find({}).sort({ createdAt: -1 }).limit(n).lean();
+		// return chronological order (old -> new)
+		return res.json((docs || []).reverse());
+	} catch (err) {
+		console.error('getLastN error', err);
 		return res.status(500).json({ error: 'Server error' });
 	}
 };

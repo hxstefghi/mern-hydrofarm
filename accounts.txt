@@ -3,5 +3,5 @@ username/email:
 2. christianc13
 3. renzo1
 
-default password to all:
+password:
 123123
