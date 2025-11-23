@@ -137,6 +137,7 @@ try {
 	const humidity = pick('humidity', 'hum', 'h');
 	const water_level = pick('water_level', 'waterLevel', 'water', 'w');
 	const ph_level = pick('ph_level', 'ph', 'pH');
+	const createdAtRaw = pick('createdAt', 'timestamp', 'ts', 'time');
 
 	// coerce numeric strings to numbers where sensible
 	const coerceNum = v => (v === null || v === undefined || v === '') ? null : (isNaN(Number(v)) ? v : Number(v));
@@ -186,7 +187,13 @@ try {
 		return res.status(400).json({ error: 'Missing or invalid fields', missing: miss });
 	}
 
-	const reading = new SensorReading({ temperature: tVal, humidity: hVal, water_level: wVal, ph_level: phVal });
+	// allow client to set createdAt (useful for seeding/testing). Validate date.
+	let createdAt = undefined;
+	if (createdAtRaw) {
+		const d = new Date(createdAtRaw);
+		if (!isNaN(d.getTime())) createdAt = d;
+	}
+	const reading = new SensorReading({ temperature: tVal, humidity: hVal, water_level: wVal, ph_level: phVal, ...(createdAt ? { createdAt } : {}) });
 	await reading.save();
 
 	// emit a realtime event for subscribers (SSE/ws) with the saved reading
