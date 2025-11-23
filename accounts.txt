@@ -1,7 +1,0 @@
-username/email:
-1. micsalado1
-2. christianc13
-3. renzo1
-
-password:
-123123
