@@ -33,9 +33,11 @@ const App = () => {
         {token && <Sidebar current={page} onNavigate={(p) => { setPage(p); setDrawerOpen(false); }} token={token} onLogout={handleLogout} />}
 
         <main className="flex-1">
-          <header className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-center">HydroFarm Monitoring Dashboard</h1>
-          </header>
+          {token && page === 'dashboard' && (
+            <header className="mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold text-center">HydroFarm Monitoring Dashboard</h1>
+            </header>
+          )}
 
           {!token ? (
             <div className="pt-8">
