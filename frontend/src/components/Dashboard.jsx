@@ -111,7 +111,7 @@ const Dashboard = ({ token }) => {
     const tempRec = getRecommendation('temperature', latest && latest.temperature != null ? Number(latest.temperature) : null);
     const humRec = getRecommendation('humidity', latest && latest.humidity != null ? Number(latest.humidity) : null);
     const phRec = getRecommendation('ph', latest && latest.ph_level != null ? Number(latest.ph_level) : null);
-    const waterRec = getRecommendation('water', latest && latest.water_level != null ? (isNaN(Number(latest.water_level)) ? latest.water_level : Number(latest.water_level)) : null);
+    
 
     const formatTime = (iso) => {
         try {
@@ -325,7 +325,7 @@ const Dashboard = ({ token }) => {
     return (
         <div className="space-y-6">
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
                         <div className="text-sm text-gray-500">Temperature</div>
@@ -350,17 +350,7 @@ const Dashboard = ({ token }) => {
                     </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
-                    <div>
-                        <div className="text-sm text-gray-500">Water Level</div>
-                        <div className="text-2xl font-bold text-gray-900">{latest && latest.water_level != null ? `${latest.water_level}` : '—'}</div>
-                    </div>
-                    <div className="bg-green-500 text-white rounded-lg p-3 shadow-md ml-4">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v20m0 0c4-2 6-6 6-10S16 4 12 2z"></path>
-                        </svg>
-                    </div>
-                </div>
+                { /* Water Level removed as requested */ }
 
                 <div className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between">
                     <div>
@@ -376,8 +366,8 @@ const Dashboard = ({ token }) => {
             </div>
 
             {/* Recommendation summary above charts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[{k:'temperature', label:'Temperature', rec: tempRec}, {k:'humidity', label:'Humidity', rec: humRec}, {k:'water', label:'Water Level', rec: waterRec}, {k:'ph', label:'pH', rec: phRec}].map(item => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[{k:'temperature', label:'Temperature', rec: tempRec}, {k:'humidity', label:'Humidity', rec: humRec}, {k:'ph', label:'pH', rec: phRec}].map(item => (
                     <div key={item.k} className="bg-white p-3 rounded-lg shadow-sm flex items-start gap-3">
                         <div className={`w-2 h-8 rounded ${item.rec.status === 'ok' ? 'bg-green-400' : item.rec.status === 'unknown' ? 'bg-gray-300' : 'bg-red-400'}`}></div>
                         <div>
