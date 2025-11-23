@@ -135,10 +135,15 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
                   );
                 })}
             </nav>
+
+            <div className="mt-6 border-t border-gray-100 pt-4 text-sm text-gray-500">
+              
+            </div>
+            
           </div>
 
           {token && (
-            <div className="mt-6">
+            <div className="mt-4">
               <button onClick={onLogout} className="w-full px-3 py-2 bg-red-500 text-white rounded">Logout</button>
               <div className="mt-4 text-xs text-gray-400">Developed by: Christian Catuday</div>
             </div>
