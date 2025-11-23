@@ -87,15 +87,13 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
             </nav>
 
             <div className="mt-6 border-t border-gray-100 pt-4 text-sm text-gray-500">
-              <div className="mb-2 font-semibold text-gray-700">HydroFarm</div>
-              <div className="text-xs text-gray-500">Compact hydroponic monitoring — temperature, humidity, water level and pH tracking.</div>
+              
             </div>
-
-            <div className="mt-4 text-xs text-gray-400">Developed by: Christian Catuday</div>
 
             {token && (
               <div className="mt-4">
                 <button onClick={() => { onLogout(); setOpen(false); }} className="w-full px-3 py-2 bg-red-500 text-white rounded">Logout</button>
+                <div className="mt-4 text-xs text-gray-400">Developed by: Christian Catuday</div>
               </div>
             )}
           </aside>
