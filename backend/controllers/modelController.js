@@ -1,21 +1,26 @@
 const fs = require('fs');
 const path = require('path');
+const ModelThreshold = require('../models/ModelThreshold');
 
 const configPath = path.join(__dirname, '..', 'config', 'model_thresholds.json');
 
-exports.getThresholds = (req, res) => {
-  fs.readFile(configPath, 'utf8', (err, data) => {
-    if (err) {
-      // If file not found or empty, return 204 No Content
+exports.getThresholds = async (req, res) => {
+  try {
+    // Get the most recent active threshold from MongoDB
+    const threshold = await ModelThreshold.findOne({ active: true }).sort({ trained_at: -1 });
+    if (!threshold) {
       return res.status(204).json({});
     }
-    try {
-      const parsed = JSON.parse(data || '{}');
-      return res.json(parsed);
-    } catch (e) {
-      return res.status(500).json({ error: 'Malformed thresholds file' });
-    }
-  });
+    return res.json({
+      temperature: threshold.temperature,
+      humidity: threshold.humidity,
+      ph_level: threshold.ph_level,
+      model_accuracy: threshold.model_accuracy
+    });
+  } catch (err) {
+    console.error('Error fetching thresholds from DB:', err);
+    return res.status(500).json({ error: 'Failed to fetch thresholds' });
+  }
 };
 
 // Handle CSV upload
@@ -31,17 +36,21 @@ exports.uploadCsv = (req, res) => {
 
 const { spawn } = require('child_process');
 
-// helper to merge uploaded CSV into master
-function mergeUploadedCsv(uploadedPath, res) {
-  const os = require('os');
-  // Use temp dir for cloud deployments, local uploads for development
-  let uploadsDir;
-  try {
-    uploadsDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : path.join(__dirname, '..', 'uploads');
-  } catch (e) {
-    uploadsDir = path.join(__dirname, '..', 'uploads');
+// helper to merge uploaded CSV into master and save thresholds to MongoDB
+async function mergeUploadedCsv(uploadedPath, res) {
+  // Check if response already sent
+  if (res.headersSent) {
+    console.log('Response already sent, skipping merge');
+    return;
+  }
+  
+  // Always use local uploads dir for training_data.csv (for local development)
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
   }
   const masterPath = path.join(uploadsDir, 'training_data.csv');
+  
   try {
     const uploadedContent = fs.readFileSync(uploadedPath, 'utf8');
     const lines = uploadedContent.split(/\r?\n/).filter(Boolean);
@@ -71,13 +80,31 @@ function mergeUploadedCsv(uploadedPath, res) {
       }
     }
 
-    // Read thresholds to return to client
+    // Read thresholds from JSON file and save to MongoDB
     const cfgPath = path.join(__dirname, '..', 'config', 'model_thresholds.json');
     let thresholds = {};
     try {
-      thresholds = JSON.parse(fs.readFileSync(cfgPath, 'utf8') || '{}');
+      const thresholdData = JSON.parse(fs.readFileSync(cfgPath, 'utf8') || '{}');
+      
+      // Save to MongoDB for persistence across deployments (optional - don't fail if DB unavailable)
+      if (thresholdData.temperature && thresholdData.humidity && thresholdData.ph_level) {
+        try {
+          await ModelThreshold.create({
+            temperature: thresholdData.temperature,
+            humidity: thresholdData.humidity,
+            ph_level: thresholdData.ph_level,
+            model_accuracy: thresholdData.model_accuracy,
+            active: true
+          });
+          console.log('Thresholds saved to MongoDB');
+        } catch (dbErr) {
+          console.warn('Could not save to MongoDB (continuing anyway):', dbErr.message);
+        }
+      }
+      
+      thresholds = thresholdData;
     } catch (e) {
-      // ignore
+      console.error('Error processing thresholds:', e);
     }
 
     // success
@@ -132,11 +159,29 @@ exports.trainUploaded = (req, res) => {
         return res.status(500).json({ error: 'Training failed', details: stderr || stdout });
       }
 
-      // success: merge
-      mergeUploadedCsv(uploadedPath, res);
+      // success: merge (use promise chain to handle async)
+      responded = true;
+      mergeUploadedCsv(uploadedPath, res).catch(err => {
+        console.error('Error in mergeUploadedCsv:', err);
+        console.error('Stack:', err.stack);
+        if (!res.headersSent) {
+          try {
+            res.status(500).json({ error: 'Failed to save training results', details: err.message });
+          } catch (resErr) {
+            console.error('Could not send error response:', resErr);
+          }
+        }
+      });
     });
   };
 
-  // try to spawn trainer using 'python' first
-  spawnTrainer('python');
+  try {
+    // try to spawn trainer using 'python' first
+    spawnTrainer('python');
+  } catch (err) {
+    console.error('Error spawning trainer:', err);
+    if (!responded && !res.headersSent) {
+      res.status(500).json({ error: 'Failed to start training', details: err.message });
+    }
+  }
 };
