@@ -21,8 +21,11 @@ exports.getThresholds = (req, res) => {
 // Handle CSV upload
 exports.uploadCsv = (req, res) => {
   // multer saves file to req.file
+  console.log('Upload CSV - req.file:', req.file ? 'present' : 'missing');
+  console.log('Upload CSV - req.body:', req.body);
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   // respond with path info
+  console.log('File uploaded successfully:', req.file.filename);
   return res.json({ filename: req.file.filename, path: req.file.path });
 };
 
@@ -30,7 +33,14 @@ const { spawn } = require('child_process');
 
 // helper to merge uploaded CSV into master
 function mergeUploadedCsv(uploadedPath, res) {
-  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  const os = require('os');
+  // Use temp dir for cloud deployments, local uploads for development
+  let uploadsDir;
+  try {
+    uploadsDir = process.env.NODE_ENV === 'production' ? os.tmpdir() : path.join(__dirname, '..', 'uploads');
+  } catch (e) {
+    uploadsDir = path.join(__dirname, '..', 'uploads');
+  }
   const masterPath = path.join(uploadsDir, 'training_data.csv');
   try {
     const uploadedContent = fs.readFileSync(uploadedPath, 'utf8');
@@ -82,9 +92,15 @@ function mergeUploadedCsv(uploadedPath, res) {
 
 // Train with uploaded file, and on success merge into master training CSV.
 exports.trainUploaded = (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded for training' });
+  console.log('Train uploaded - req.file:', req.file ? 'present' : 'missing');
+  console.log('Train uploaded - Content-Type:', req.headers['content-type']);
+  if (!req.file) {
+    console.error('No file uploaded for training');
+    return res.status(400).json({ error: 'No file uploaded for training' });
+  }
 
   const uploadedPath = req.file.path; // full path
+  console.log('Training with file:', uploadedPath);
   let responded = false;
 
   const spawnTrainer = (pythonCmd) => {

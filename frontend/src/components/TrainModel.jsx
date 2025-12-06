@@ -18,11 +18,12 @@ const TrainModel = () => {
     try {
       setStatus('Uploading...');
       // POST to the training endpoint which runs training and merges on success
-      const headers = { 'Content-Type': 'multipart/form-data' };
+      const headers = {};
       if (typeof window !== 'undefined') {
         const token = localStorage.getItem('hf_token');
         if (token) headers.Authorization = `Bearer ${token}`;
       }
+      // Note: Do NOT set Content-Type manually - let browser set it with boundary
       const res = await api.post('/api/model/train', fd, { headers });
       if (res.status === 200) {
         const msg = res.data && res.data.message ? res.data.message : 'Train request finished';
