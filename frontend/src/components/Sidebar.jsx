@@ -1,38 +1,36 @@
 import React, { useState } from "react";
 
-const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, onLogout = () => {} }) => {
+const Sidebar = ({ current = "dashboard", onNavigate = () => { }, token = null, onLogout = () => { } }) => {
   const items = [
-    { id: "dashboard", label: "Dashboard", icon: (
+    {
+      id: "dashboard", label: "Dashboard", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h7v7H3V3zM14 3h7v7h-7V3zM3 14h7v7H3v-7zM14 14h7v7h-7v-7z" />
         </svg>
-      ) },
-    { id: "train-model", label: "Train Model", icon: (
+      )
+    },
+    {
+      id: "train-model", label: "Train Model", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c1.657 0 3-1.567 3-3.5S13.657 1 12 1 9 2.567 9 4.5 10.343 8 12 8zM5 21a7 7 0 0114 0" />
         </svg>
-      ) },
-    { id: "yearly", label: "Yearly Overview", icon: (
+      )
+    },
+    {
+      id: "yearly", label: "Yearly Overview", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3v18h18" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 13l3-4 4 6 3-8 3 6" />
         </svg>
-      ) },
-    { id: "data-purging", label: "Data Purging", icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 6h18M8 6v14a2 2 0 002 2h4a2 2 0 002-2V6M10 11v6M14 11v6" />
-        </svg>
-      ) },
-    { id: "activity-log", label: "Activity Log", icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ) },
-    { id: "user-management", label: "User Management", icon: (
+      )
+    },
+    {
+      id: "user-management", label: "User Management", icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2" />
         </svg>
-      ) },
+      )
+    },
   ];
 
   const [open, setOpen] = useState(false);
@@ -87,7 +85,7 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
             </nav>
 
             <div className="mt-6 border-t border-gray-100 pt-4 text-sm text-gray-500">
-              
+
             </div>
 
             {token && (
@@ -112,32 +110,32 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
             </div>
 
             <nav className="flex flex-col gap-2">
-                {items.map((item) => {
-                  const active = current === item.id;
-                  // protect certain pages when not authenticated
-                  const protectedPages = ['dashboard', 'train-model'];
-                  const disabled = !token && protectedPages.includes(item.id);
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => { if (!disabled) onNavigate(item.id); }}
-                      aria-current={active ? 'true' : undefined}
-                      className={`group flex items-center gap-3 w-full text-left px-3 py-2 rounded-md transition-colors focus:outline-none ${active ? 'bg-green-50 text-green-700 font-medium' : disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
-                      disabled={disabled}
-                    >
-                      <span className={`shrink-0 ${active ? 'text-green-600' : disabled ? 'text-gray-300' : 'text-gray-400'} group-hover:text-gray-600`}>
-                        {item.icon}
-                      </span>
-                      <span className="flex-1 text-gray-700">{item.label}</span>
-                    </button>
-                  );
-                })}
+              {items.map((item) => {
+                const active = current === item.id;
+                // protect certain pages when not authenticated
+                const protectedPages = ['dashboard', 'train-model'];
+                const disabled = !token && protectedPages.includes(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => { if (!disabled) onNavigate(item.id); }}
+                    aria-current={active ? 'true' : undefined}
+                    className={`group flex items-center gap-3 w-full text-left px-3 py-2 rounded-md transition-colors focus:outline-none ${active ? 'bg-green-50 text-green-700 font-medium' : disabled ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+                    disabled={disabled}
+                  >
+                    <span className={`shrink-0 ${active ? 'text-green-600' : disabled ? 'text-gray-300' : 'text-gray-400'} group-hover:text-gray-600`}>
+                      {item.icon}
+                    </span>
+                    <span className="flex-1 text-gray-700">{item.label}</span>
+                  </button>
+                );
+              })}
             </nav>
 
             <div className="mt-6 border-t border-gray-100 pt-4 text-sm text-gray-500">
-              
+
             </div>
-            
+
           </div>
 
           {token && (
@@ -145,7 +143,7 @@ const Sidebar = ({ current = "dashboard", onNavigate = () => {}, token = null, o
               <button onClick={onLogout} className="w-full px-3 py-2 bg-red-500 text-white rounded">Logout</button>
               <div className="mt-4 text-xs text-gray-400">Developed by: Christian Catuday</div>
             </div>
-            
+
           )}
         </div>
       </aside>
